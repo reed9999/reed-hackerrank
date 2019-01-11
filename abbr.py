@@ -11,18 +11,19 @@ import random
 import re
 import sys
 
-def branch_search(new_a, new_b, next_level=1):
+def branch_search(new_a, new_b, old_level=0):
     """The point is sometimes we get tricked by an upper-case conversion that isn't the one
     intended. Thanks to the magic of recursion I *THINK* we can just branch into two cases here,
     the one where we found the right match and the one where the next possible match is the right one."""
-    if char_by_char(new_a[1:], new_b[1:], next_level):
-        # The case where matching on the present character produces eventual success, so go ahead and do that.
-
-        grand_hash[(new_a[1:], new_b[1:])] = True
-        grand_hash[(new_a, new_b)] = True
-        print("Caching {}{}=True".format(new_a, new_b))
-        return True
-    if char_by_char(new_a[1:], new_b, next_level):
+    level = old_level
+    # if char_by_char(new_a[1:], new_b[1:], level + 1):
+    #     # The case where matching on the present character produces eventual success, so go ahead and do that.
+    #
+    #     grand_hash[(new_a[1:], new_b[1:])] = True
+    #     grand_hash[(new_a, new_b)] = True
+    #     print("Caching {}{}=True".format(new_a, new_b))
+    #     return True
+    if char_by_char(new_a[1:], new_b, level + 1):
         # The case where lookahead is necessary. Matching by capitalizing the present character
         # produces eventual failure, so instead look ahead and see if declining the match leads to a
         # better match down the line.
@@ -33,7 +34,7 @@ def branch_search(new_a, new_b, next_level=1):
     else:
         grand_hash[(new_a, new_b)] = False
         return False
-
+    raise RuntimeError("This should not fall through.")
 
 RECURSION_LIMIT = 45
 
@@ -66,20 +67,23 @@ def char_by_char(a, b, level=0):
                 if (new_a, new_b) in grand_hash.keys():
                     print ("From cache  {}{}={}".format(new_a, new_b, grand_hash[(new_a, new_b)]))
                     print ("But don't actually retrieve from cache for now")
-                    # return grand_hash[(new_a, new_b)]
-                branch_search(new_a, new_b, level+1)
-                # if char_by_char(new_a[1:], new_b[1:], level+1):
-                #     # The case where matching on the present character produces eventual success, so go ahead and do that.
-                #
-                #     grand_hash[(new_a[1:], new_b[1:])] = True
-                #     grand_hash[(new_a, new_b)] = True
-                #     print ("Caching {}{}=True".format(new_a, new_b))
-                #     return True
-                # if char_by_char(new_a[1:], new_b, level+1):
+                    return grand_hash[(new_a, new_b)]
+
+
+###
+                if char_by_char(new_a[1:], new_b[1:], level + 1):
+                    # The case where matching on the present character produces eventual success, so go ahead and do that.
+
+                    grand_hash[(new_a[1:], new_b[1:])] = True
+                    grand_hash[(new_a, new_b)] = True
+                    print("Caching {}{}=True".format(new_a, new_b))
+                    return True
+                branch_search(new_a, new_b, level)
+                # if char_by_char(new_a[1:], new_b, level + 1):
                 #     # The case where lookahead is necessary. Matching by capitalizing the present character
                 #     # produces eventual failure, so instead look ahead and see if declining the match leads to a
                 #     # better match down the line.
-                #     print ("Caching 2")
+                #     print("Caching 2")
                 #     grand_hash[(new_a[1:], new_b)] = True
                 #     grand_hash[(new_a, new_b)] = True
                 #     return True
@@ -87,6 +91,8 @@ def char_by_char(a, b, level=0):
                 #     grand_hash[(new_a, new_b)] = False
                 #     return False
 ###
+
+
         if ch.islower():
             continue    #but don't advance b
         else:
