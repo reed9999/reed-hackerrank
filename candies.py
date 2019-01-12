@@ -6,17 +6,18 @@ import random
 import re
 import sys
 
-def compare_min_scores(x, y):
-    min_x = min(x)
-    min_y = min(y)
-    the_min = min(min_x, min_y)
-    if min_x == the_min:
-        if min_y == the_min:
-            return 0
-        else:
-            return -1
-    else:
-        return 1
+candies_array = None
+# def compare_min_scores(x, y):
+#     min_x = min(x)
+#     min_y = min(y)
+#     the_min = min(min_x, min_y)
+#     if min_x == the_min:
+#         if min_y == the_min:
+#             return 0
+#         else:
+#             return -1
+#     else:
+#         return 1
 
 def adjust_candies(scores, candies):
     xsc, ysc = scores[0], scores[1]
@@ -36,11 +37,6 @@ def candies_impl(arr, candies_slice):
     n = len(arr)
     if n == 1:
         return candies_slice[0]
-    # elif n == 2:
-    #     x = arr[0]
-    #     y = arr[1]
-    #     adjust_candies((x, y), (candies_arr[0], candies_arr[1]))
-    #     return sum(candies_arr)
     else:
         # pick a len roughly at the midpoint. It shouldn't matter if it's exactly the midpoint as long as
         # each side has at least one element.
@@ -54,12 +50,11 @@ def candies_impl(arr, candies_slice):
 
 def candies(n, arr):
     assert n == len(arr)
-    global candies_arr
     candies_arr = [1] * n
     rv = candies_impl(arr, candies_arr)
     # Weirdly in the basic three-student case rv is turning out OK but candies_arr is butchered.
     # I doubt this is sustainable but let's see!
-    # assert rv == sum(candies_arr)
+    assert rv == sum(candies_arr)
     return rv
 
 def harness():
