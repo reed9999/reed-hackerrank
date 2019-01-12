@@ -33,25 +33,26 @@ def adjust_candies(scores, candies):
     return (xcan, ycan)
 
 
-def candies_impl(arr, candies_slice):
-    n = len(arr)
+def candies_impl(lscores, lcandies, rangespec):
+    start, stop = rangespec[0], rangespec[1]
+    n = stop - start
     if n == 1:
-        return candies_slice[0]
+        return lcandies[start]
     else:
         # pick a len roughly at the midpoint. It shouldn't matter if it's exactly the midpoint as long as
         # each side has at least one element.
         i = int( n / 2 )
-        left = arr[:i]
-        right = arr[i:]
-        new_candy_counts = adjust_candies(arr[i-1:i+1], candies_slice[i-1:i+1])
-        # Note that we can change candies_array directly by changing values in the slice.
-        candies_slice[i-1], candies_slice[i] = new_candy_counts
-        return candies_impl(left, candies_slice[:i]) + candies_impl(right, candies_slice[i:])
+        pivot = start + i   #index of the first element of the right side
+        new_candy_counts = adjust_candies(lscores[pivot-1 : pivot+1], lcandies[pivot-1 : pivot+1])
+        lcandies[pivot-1] = new_candy_counts[0]
+        lcandies[pivot] = new_candy_counts[1]
+        return candies_impl(lscores, lcandies, [start, start+i]) + \
+               candies_impl(lscores, lcandies, [start+1, start+n])
 
 def candies(n, arr):
     assert n == len(arr)
     candies_arr = [1] * n
-    rv = candies_impl(arr, candies_arr)
+    rv = candies_impl(arr, candies_arr, [0, n])
     # Weirdly in the basic three-student case rv is turning out OK but candies_arr is butchered.
     # I doubt this is sustainable but let's see!
     assert rv == sum(candies_arr)
