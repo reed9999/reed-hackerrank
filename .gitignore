@@ -1,0 +1,6 @@
+# I took an exam on hackerrank; probably not ethical to share that code widely.
+exam*.py
+
+# Local testcase hacking I don't necessarily need to share
+local*
+subset*
