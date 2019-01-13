@@ -6,6 +6,15 @@ import random
 import re
 import sys
 
+## The assumptions of my algorithm are pretty wrong (in particular, when you adjust on the boundary between
+# right and left, you need to propagate that adjustment through as needed) but it might have been simpler just to
+# 1. find the minimum score and assign it 1
+# 2. assign the neighbors 2.
+# 3. adjust those neighbors/their second-order neighbors as I'm doing here, incrementing as needed.
+# 4. Etc
+# but you still need to propagate somehow.
+
+
 candies_array = None
 # def compare_min_scores(x, y):
 #     min_x = min(x)
@@ -43,11 +52,16 @@ def candies_impl(lscores, lcandies, rangespec):
         # each side has at least one element.
         i = int( n / 2 )
         pivot = start + i   #index of the first element of the right side
+        left_result = candies_impl(lscores, lcandies, [start, pivot])
+        right_result = candies_impl(lscores, lcandies, [pivot, stop])
         new_candy_counts = adjust_candies(lscores[pivot-1 : pivot+1], lcandies[pivot-1 : pivot+1])
         lcandies[pivot-1] = new_candy_counts[0]
         lcandies[pivot] = new_candy_counts[1]
-        return candies_impl(lscores, lcandies, [start, start+i]) + \
-               candies_impl(lscores, lcandies, [start+1, start+n])
+
+        # It feels like we should do the recursive calls again (now that we've situated the boundary counts) but
+        # that also seems incredibly inefficient.
+        # return  left_result + right_result
+        return  sum(lcandies[start:stop])
 
 def candies(n, arr):
     assert n == len(arr)
@@ -59,10 +73,12 @@ def candies(n, arr):
     return rv
 
 def harness():
+    tc1 = [2, 4, 2, 6, 1, 7, 8, 9, 2, 1]
+    assert 19 == candies(10, tc1)
+    assert 4 == candies(3, [99, 99, 98]) #counterintuitive but [1, 2, 1] is acceptable because of the tie score.
     assert 6 == candies(3, [4, 5, 6])
     assert 4 == candies(3, [4, 6, 5])
     assert 3 == candies(3, [99, 99, 99])
-    assert 5 == candies(3, [99, 99, 98])
     assert 3 == candies(2, [4, 5])
     assert (2, 1) == adjust_candies([5, 4,], [1, 1,])
     assert (17, 2) == adjust_candies([4, 4,], [17, 2,])
