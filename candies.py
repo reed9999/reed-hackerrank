@@ -6,77 +6,46 @@ import random
 import re
 import sys
 
-## The assumptions of my algorithm are pretty wrong (in particular, when you adjust on the boundary between
-# right and left, you need to propagate that adjustment through as needed) but it might have been simpler just to
+
+##
+# Currently I'm using the brute force approach below. This seems to give right answers, but it
+# has a ridiculous amount of rework and other inefficiencies.
+
+# It might have been simpler just to
 # 1. find the minimum score and assign it 1
 # 2. assign the neighbors 2.
 # 3. adjust those neighbors/their second-order neighbors as I'm doing here, incrementing as needed.
 # 4. Etc
-# but you still need to propagate somehow.
 
-#
-# def adjust_candies(scores, candies):
-#     xsc, ysc = scores[0], scores[1]
-#     xcan, ycan = candies[0], candies[1]
-#     if xsc > ysc:
-#         xcan = max (xcan, ycan + 1)
-#     elif ysc > xsc:
-#         ycan = max (ycan, xcan + 1)
-#     # I thought we could do operations directly on the slice...
-#     candies[0], candies[1] = xcan, ycan
-#     # ... but that may be my overreliance on pandas slices. :)
-#     # Instead use the returned value.
-#     return (xcan, ycan)
-#
-#
-# def candies_impl(lscores, lcandies, rangespec):
-#     start, stop = rangespec[0], rangespec[1]
-#     n = stop - start
-#     if n == 1:
-#         return lcandies[start]
-#     else:
-#         # pick a len roughly at the midpoint. It shouldn't matter if it's exactly the midpoint as long as
-#         # each side has at least one element.
-#         i = int( n / 2 )
-#         pivot = start + i   #index of the first element of the right side
-#         left_result = candies_impl(lscores, lcandies, [start, pivot])
-#         right_result = candies_impl(lscores, lcandies, [pivot, stop])
-#         new_candy_counts = adjust_candies(lscores[pivot-1 : pivot+1], lcandies[pivot-1 : pivot+1])
-#         lcandies[pivot-1] = new_candy_counts[0]
-#         lcandies[pivot] = new_candy_counts[1]
-#
-#         # It feels like we should do the recursive calls again (now that we've situated the boundary counts) but
-#         # that also seems incredibly inefficient.
-#         # return  left_result + right_result
-#         return  sum(lcandies[start:stop])
+# Note that test case 14 should return: 204867
+# This one does take at least 5 minutes to run on my comp using the brute force approach, so
+# it's reasonable that it times out on their server.
+
+# The brute force method
+def local_minima_approach(lscores):
+    #See https://www.hackerrank.com/challenges/candies/forum/comments/347497
+    # But how does it deal with the tiebreakers?
+    raise NotImplementedError
+
+    list_of_lists = []
+    current = []
+    for i in range(lscores):
+        if (i==0 and lscores[0] < lscores[1]) or \
+                (i == len(iscores)-1 and lscores[i] < lscores[i-1]):
+            current.append(i)
+        if (lscores[i] < lscores [i-1] and lscores[i] < lscores[i+1]):
+            current.append(i)
+    list_of_lists.append(current)
 
 
+#Copy paste not yet edited.
+    for i in range(lscores):
+        if (i== len(iscores)-1 and lscores[i] < lscores[i-1]):
+            current.append(i)
+        if (lscores[i] < lscores [i-1] and lscores[i] < lscores[i+1]):
+            current.append(i)
+    list_of_lists.append(current)
 
-
-candies_array = None
-# def compare_min_scores(x, y):
-#     min_x = min(x)
-#     min_y = min(y)
-#     the_min = min(min_x, min_y)
-#     if min_x == the_min:
-#         if min_y == the_min:
-#             return 0
-#         else:
-#             return -1
-#     else:
-#         return 1
-
-def simple_attempt(lscores, lcandies):
-    # Not my solution. See https://www.hackerrank.com/challenges/candies/forum/comments/81516
-    # but test case 2 in the hidden suite gives 35197 whereas correct is 42105
-    assert(len(lscores) == len(lcandies))
-    for i in range(1, len(lscores)):
-        if lscores[i] > lscores [i-1]:
-            lcandies[i] = max(lcandies[i], lcandies[i-1] + 1)
-    for i in range(len(lscores)-1, -1):
-        if lscores[i] > lscores [i+1]:
-            lcandies[i] = max(lcandies[i], lcandies[i+1] + 1)
-    return sum(lcandies)
 
 def find_all_violations(lscores, lcandies):
     assert(len(lscores) == len(lcandies))
@@ -89,6 +58,8 @@ def find_all_violations(lscores, lcandies):
         elif score < last_score and last_candies <= candies:
             rv.append((i-1, False))
         last_score, last_candies = score, candies
+    if len(rv) % 200 == 0:
+        print("Pass with {} violations".format(len(rv)))
     return rv
 
 def violation_to_fix(lscores, lcandies, vios):
@@ -117,6 +88,7 @@ def candies(n, arr):
     assert n == len(arr)
     lcandies = [1] * n
     # rv = candies_impl(arr, lcandies, [0, n])
+    # rv = brute_force_approach(arr, lcandies,)
     rv = brute_force_approach(arr, lcandies,)
     assert rv == sum(lcandies)
     return rv
