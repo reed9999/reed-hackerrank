@@ -54,7 +54,40 @@ def fancier_branch_search(a, b, level=0):
     all_occurrences = [match.start() for match in re.finditer(b, current_a, re.IGNORECASE)]
     recursion_debug("All occurrences:{}".format(all_occurrences))
 
+def find_last_valid_index():
+    """I was erroneously finding the last occurrence of the sought character from b in a, *at all*,
+    but that means we might discard upper case letters from a, contrary to the rules."""
+    raise NotImplementedError
+
 def fancy_branch_search(a, b, level=0):
+    if len(a) < len(b):
+        return False
+    current_char = b[0]
+    truncated_a = a
+    while len(truncated_a) > 0:
+        # Let's look for the next character of a in what remains of b to help avoid so much recursion
+        # However this implementation is proving to be extremely error
+        # last_index = truncated_a.lower().rfind(current_char.lower())
+        last_index = find_last_valid_index(truncated_a, current_char)
+        if last_index == -1:
+            cache((truncated_a, b), False)
+            return False
+        elif last_index == 0:
+            # degenerate case
+            assert current_char.isupper()
+            result = char_by_char(a[1:], b[1:], level+1)
+            cache((a[1:], b[1:]), result)
+            return result
+        if len(truncated_a[last_index:]) < len(b):
+            truncated_a = truncated_a[:last_index] #DRY
+            continue
+        if char_by_char(truncated_a[last_index:], b, level+1):
+
+            return True
+        cache((truncated_a[last_index:], b), False)
+        truncated_a = truncated_a[:last_index]
+
+def broken_fancy_branch_search(a, b, level=0):
     if len(a) < len(b):
         return False
     current_char = b[0]
@@ -199,10 +232,24 @@ def char_by_char(a, b, level=0):
     cache((a, b), rv)
     return rv
 
+#This is probably too slow and is certainly opaque
+# Also I think there's a bug -- lowercase letters in b require lowercase in a, not case-agnostic.
+def regex_approach(a, b,):
+    b_pattern = "[a-z]*"    #OK to drop any number of lower case letters.
+    for c in b:
+        # lower case in b must only match lower
+        # upper in b can match either
+        b_pattern += \
+            c.lower() if c.islower() \
+                else "["+ c + c.lower() + "]"
+        b_pattern += "[a-z]*"
+    print("Matching {} {}".format(b_pattern, a))
+    return re.match(b_pattern, a)
 
 def abbreviation(a, b):
     max_recursion_so_far = 0
-    rv = char_by_char(a, b)
+    # rv = char_by_char(a, b)
+    rv = regex_approach(a, b)
     #rv = char_by_char(a[::-1], b[::-1])
     if rv:
         return('YES')
@@ -222,16 +269,17 @@ def harness_easy_cases():
 def harness():
     # We can't just keep consuming off be
     # because the match on 'w' leaves 'erWORD' and 'ORD' so b can no longer match.
-    # harness_easy_cases()
-    # assert 'YES' == abbreviation('aaaaaaaaaabaaaaaaaaaac', 'AaaBAAc')
-    assert False == fancy_branch_search('aaaaaBaaaaaaaaaac', 'Ac')
+    harness_easy_cases()
+    # exit()
+    assert 'YES' == abbreviation('aaaaaaaaaabaaaaaaaaaac', 'AaaBAAc')
+    # assert False == fancy_branch_search('aaaaaBaaaaaaaaaac', 'Ac')
     assert 'NO' == abbreviation('aaaaaaaaaaBaaaaaaaaaac', 'AaaaAAc')
     with open('testcases/abbr12.txt') as the_file:
         lines = the_file.readlines()
         tc12_0 = (lines[1].strip(), lines[2].strip())
         tc12_7 = (lines[15].strip(), lines[17].strip())
-    # assert 'NO' == abbreviation(*tc12_7)
-    # assert 'YES' == abbreviation(*tc12_0)
+    assert 'NO' == abbreviation(*tc12_7)
+    assert 'YES' == abbreviation(*tc12_0)
     with open('testcases/abbr13.txt') as the_file:
         lines = the_file.readlines()
         # tc13_5 = tuple(lines[11:13])
