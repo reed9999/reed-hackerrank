@@ -21,9 +21,11 @@ def cache_debug(msg):
 def recursion_debug(msg):
     print(msg)
 
-def cache(list_of_keys, value):
-    for key in list_of_keys:
-        grand_hash[key] = value
+def cache(key, value):
+    #Oops.... I was iterating through a bunch of keys, but now it should just take one single key,
+    # which is a tuple.
+    assert len(key) == 2
+    grand_hash[key] = value
 
 def lookahead_is_ok(new_a, new_b):
     """Quicker heuristics to attempt to remove some of the recursion. In what cases do we know that calling char_by_char
@@ -41,6 +43,8 @@ def lookahead_is_ok(new_a, new_b):
     return True
 
 def fancy_branch_search(a, b, level=0):
+    if len(a) < len(b):
+        return False
     #to make things easier, let's go all the way to the last occurrence of the next character
     current_char = b[0]
     truncated_a = a
@@ -56,7 +60,7 @@ def fancy_branch_search(a, b, level=0):
             # degenerate case
             assert current_char.isupper()
             return char_by_char(a[1:], b[1:])
-        if char_by_char(a[last_index:], b, level+1):
+        if char_by_char(truncated_a[last_index:], b, level+1):
 
             return True
         truncated_a = truncated_a[:last_index]
@@ -66,7 +70,7 @@ COUNTER = 0
 def manage_recursion(a, b, level):
     global max_recursion_so_far, COUNTER
 
-    if (COUNTER % 1000 == 0):
+    if (COUNTER % 1000 == 999):
         print("**********    iteration {}".format(COUNTER))
         print("""a (len {}): {}
         b (len {}): {}
@@ -127,6 +131,8 @@ grand_hash = {}
 
 def char_by_char(a, b, level=0):
     manage_recursion(a, b, level)
+    if len(a) < len(b):
+        return False
     if (a, b) in grand_hash.keys():
         cache_debug("[2] From cache {}... of len {}, {}={}".format(a[:20], len(a), len(b),
                                                                 grand_hash[(a, b)]))
@@ -185,28 +191,33 @@ def abbreviation(a, b):
     else:
         return('NO')
 
-def harness():
-    # We can't just keep consuming off be
-    # because the match on 'w' leaves 'erWORD' and 'ORD' so b can no longer match.
+def harness_easy_cases():
     assert 'YES' == abbreviation('WORDthenlowerWORD', 'WORDWORD')
     assert 'YES' == abbreviation('daBcd', 'ABC')
     assert 'NO' == abbreviation('AfPZN', 'APZNC')
-    # assert 'YES' == abbreviation('aaa', 'AAA')
-    # assert 'YES' == abbreviation('AbC', 'AbC')
-    # assert 'YES' == abbreviation('AbC', 'ABC')
-    # assert 'YES' == abbreviation('WthW', 'WW')
-    # assert 'YES' == abbreviation('WORDthenlowerWORD', 'WORDthenWORD')
+    assert 'YES' == abbreviation('aaa', 'AAA')
+    assert 'YES' == abbreviation('AbC', 'AbC')
+    assert 'YES' == abbreviation('AbC', 'ABC')
+    assert 'YES' == abbreviation('WthW', 'WW')
+    assert 'YES' == abbreviation('WORDthenlowerWORD', 'WORDthenWORD')
+
+def harness():
+    # We can't just keep consuming off be
+    # because the match on 'w' leaves 'erWORD' and 'ORD' so b can no longer match.
+    # harness_easy_cases()
+    assert 'YES' == abbreviation('aaaaaaaaaabaaaaaaaaaac', 'AaaBAAc')
+    assert 'NO' == abbreviation('aaaaaaaaaaBaaaaaaaaaac', 'AaaaAAc')
     with open('testcases/abbr12.txt') as the_file:
         lines = the_file.readlines()
         tc12_0 = (lines[1].strip(), lines[2].strip())
         tc12_7 = (lines[15].strip(), lines[17].strip())
-    assert 'NO' == abbreviation(*tc12_7)
-    assert 'YES' == abbreviation(*tc12_0)
+    # assert 'NO' == abbreviation(*tc12_7)
+    # assert 'YES' == abbreviation(*tc12_0)
     with open('testcases/abbr13.txt') as the_file:
         lines = the_file.readlines()
         # tc13_5 = tuple(lines[11:13])
         # tc13_6 = tuple(lines[13:15])
-    assert 'NO' == abbreviation(*tc13_5)
+    # assert 'NO' == abbreviation(*tc13_5)
     # assert 'YES' == abbreviation(*tc13_6)
 if __name__ == '__main__':
     # fptr = open(os.environ['OUTPUT_PATH'], 'w')
