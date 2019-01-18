@@ -15,11 +15,12 @@ RECURSION_LIMIT = 498
 max_recursion_so_far = 0
 
 def cache_debug(msg):
-    # print(msg)
-    pass
+    print(msg)
+    # pass
 
 def recursion_debug(msg):
     print(msg)
+    # pass
 
 def cache(key, value):
     #Oops.... I was iterating through a bunch of keys, but now it should just take one single key,
@@ -27,42 +28,57 @@ def cache(key, value):
     assert len(key) == 2
     grand_hash[key] = value
 
-def lookahead_is_ok(new_a, new_b):
-    """Quicker heuristics to attempt to remove some of the recursion. In what cases do we know that calling char_by_char
-    a second time after advancing the b pointer can't possibly succeed?
-    1. If a is shorter than b, it can never be made to match b.
-    2. If the next occurrence of the next letter comes only after upper case of another letter
-    3. Anything else?"""
-    if len(new_a) + 1 < len(new_b):
+# def lookahead_is_ok(new_a, new_b):
+#     """Quicker heuristics to attempt to remove some of the recursion. In what cases do we know that calling char_by_char
+#     a second time after advancing the b pointer can't possibly succeed?
+#     1. If a is shorter than b, it can never be made to match b.
+#     2. If the next occurrence of the next letter comes only after upper case of another letter
+#     3. Anything else?"""
+#     if len(new_a) + 1 < len(new_b):
+#         return False
+#     current_char = new_b[0]
+#     next_occurrence = new_a[1:].upper().find(current_char.upper()) + 1
+#     for c in new_a[1:next_occurrence]:
+#         if c.isupper():
+#             return False
+#     return True
+
+
+# Last attempt was a complete mess. Let's try something less error-prone.
+def fancier_branch_search(a, b, level=0):
+    if len(a) < len(b):
         return False
-    current_char = new_b[0]
-    next_occurrence = new_a[1:].upper().find(current_char.upper()) + 1
-    for c in new_a[1:next_occurrence]:
-        if c.isupper():
-            return False
-    return True
+    b_char = b[0]
+    assert b_char.isupper()
+    current_a = a
+    all_occurrences = [match.start() for match in re.finditer(b, current_a, re.IGNORECASE)]
+    recursion_debug("All occurrences:{}".format(all_occurrences))
 
 def fancy_branch_search(a, b, level=0):
     if len(a) < len(b):
         return False
-    #to make things easier, let's go all the way to the last occurrence of the next character
     current_char = b[0]
     truncated_a = a
     while len(truncated_a) > 0:
-        last_index_upper = truncated_a.rfind(current_char.upper())
-        last_index_lower = truncated_a.rfind(current_char.lower())
-        if last_index_upper == last_index_lower == -1:
+        # Let's look for the next character of a in what remains of b to help avoid so much recursion
+        # However this implementation is proving to be extremely error
+        last_index = truncated_a.lower().rfind(current_char.lower())
+        if last_index == -1:
             cache((truncated_a, b), False)
             return False
-        else:
-            last_index = max(last_index_upper, last_index_lower)
-        if last_index == 0:
+        elif last_index == 0:
             # degenerate case
             assert current_char.isupper()
-            return char_by_char(a[1:], b[1:])
+            result = char_by_char(a[1:], b[1:], level+1)
+            cache((a[1:], b[1:]), result)
+            return result
+        if len(truncated_a[last_index:]) < len(b):
+            truncated_a = truncated_a[:last_index] #DRY
+            continue
         if char_by_char(truncated_a[last_index:], b, level+1):
 
             return True
+        cache((truncated_a[last_index:], b), False)
         truncated_a = truncated_a[:last_index]
 
 
@@ -79,7 +95,7 @@ def manage_recursion(a, b, level):
     COUNTER += 1
     if level >= RECURSION_LIMIT:
         raise RecursionError  # False was just a guess, but guessing is probably not OK.
-    if level % 25 == 10 or level > 325:
+    if level % 25 == 20 or level > 325:
         recursion_debug("Recursion level: {} (length of hash {})".format(level, len(grand_hash)))
         max_recursion_so_far = max(max_recursion_so_far, level)
     if level > 496:
@@ -134,7 +150,7 @@ def char_by_char(a, b, level=0):
     if len(a) < len(b):
         return False
     if (a, b) in grand_hash.keys():
-        cache_debug("[2] From cache {}... of len {}, {}={}".format(a[:20], len(a), len(b),
+        cache_debug("Retrieving from cache {}... of len {}, {}={}".format(a[:20], len(a), len(b),
                                                                 grand_hash[(a, b)]))
         return grand_hash[(a, b)]
     for i in range(len(a)):
@@ -157,11 +173,13 @@ def char_by_char(a, b, level=0):
                 new_a = a[i:]
                 new_b = b
                 if (new_a, new_b) in grand_hash.keys():
-                    cache_debug("From cache  {}... of len {}, {}={}".format(new_a[:20], len(new_a), len(new_b), grand_hash[(new_a, new_b)]))
+                    cache_debug("Retrieving (1) from cache  {}... of len {}, {}={}".format(new_a[:20], len(new_a), len(new_b), grand_hash[(new_a, new_b)]))
                     return grand_hash[(new_a, new_b)]
                 try:
                     # if branch_search(new_a, new_b, level):
-                    if fancy_branch_search(new_a, new_b, level):
+                    fancier_branch_search(new_a, new_b, level)
+                    result = fancy_branch_search(new_a, new_b, level)
+                    if result:
                         return True
                 except RecursionError:  #This is enough to core dump
                     pass
@@ -205,7 +223,8 @@ def harness():
     # We can't just keep consuming off be
     # because the match on 'w' leaves 'erWORD' and 'ORD' so b can no longer match.
     # harness_easy_cases()
-    assert 'YES' == abbreviation('aaaaaaaaaabaaaaaaaaaac', 'AaaBAAc')
+    # assert 'YES' == abbreviation('aaaaaaaaaabaaaaaaaaaac', 'AaaBAAc')
+    assert False == fancy_branch_search('aaaaaBaaaaaaaaaac', 'Ac')
     assert 'NO' == abbreviation('aaaaaaaaaaBaaaaaaaaaac', 'AaaaAAc')
     with open('testcases/abbr12.txt') as the_file:
         lines = the_file.readlines()
