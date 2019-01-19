@@ -161,8 +161,9 @@ def abbreviation_impl(a, b, level=0):
                 # lowerWORD problem
                 new_a = a[i:]
                 if (new_a, b) in grand_hash.keys():
-                    cache_debug("Retrieving (1) from cache  {}... of len {}, {}={}".format(new_a[:20], len(new_a), len(new_b), grand_hash[(new_a, new_b)]))
-                    return grand_hash[(new_a, b)]
+                    result = grand_hash[(new_a, b)]
+                    cache_debug("Retrieving from cache ({}..., {}...)={}".format(new_a[:20], b[:20], result))
+                    return result
                 fancier_branch_search(new_a, b, level)
                 result = fancy_branch_search(new_a, b, level)
                 return result
@@ -175,19 +176,6 @@ def abbreviation_impl(a, b, level=0):
     rv = len(b) == 0
     cache((a, original_b), rv)
     return rv
-
-# This is too slow and is certainly opaque
-# def regex_approach(a, b,):
-#     b_pattern = "[a-z]*"    #OK to drop any number of lower case letters.
-#     for c in b:
-#         # lower case in b must only match lower
-#         # upper in b can match either
-#         b_pattern += \
-#             c.lower() if c.islower() \
-#                 else "["+ c + c.lower() + "]"
-#         b_pattern += "[a-z]*"
-#     # print("Matching {} {}".format(b_pattern, a))
-#     return re.match(b_pattern, a)
 
 def abbreviation(a, b):
     max_recursion_so_far = 0
@@ -354,3 +342,18 @@ def broken_fancy_branch_search(a, b, level=0):
             return True
         cache((truncated_a[last_index:], b), False)
         truncated_a = truncated_a[:last_index]
+
+
+
+# This is too slow and is certainly opaque
+# def regex_approach(a, b,):
+#     b_pattern = "[a-z]*"    #OK to drop any number of lower case letters.
+#     for c in b:
+#         # lower case in b must only match lower
+#         # upper in b can match either
+#         b_pattern += \
+#             c.lower() if c.islower() \
+#                 else "["+ c + c.lower() + "]"
+#         b_pattern += "[a-z]*"
+#     # print("Matching {} {}".format(b_pattern, a))
+#     return re.match(b_pattern, a)
