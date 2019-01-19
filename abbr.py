@@ -28,6 +28,10 @@ def recursion_debug(msg):
 def cache(key, value):
     #Oops.... I was iterating through a bunch of keys, but now it should just take one single key,
     # which is a tuple.
+    global grand_hash
+    if key[1] == '':
+        # Not worth storing, but apparently also a buggy case.
+        return
     assert len(key) == 2
     cache_debug("Cache storing: {} -- {}".format(key, value))
     grand_hash[key] = value
@@ -86,30 +90,19 @@ def fancy_branch_search(a, b, level=0):
         return False
     b_char = b[0]
     occurrences = find_valid_occurrences(a, b_char)
-    #This will be buggy. I need to replace truncated_a
-    truncated_a = a
 
-    # while True: #len(truncated_a) > 0: #We may no longer need a while loop bc of for loop below.
-
-    # Let's look for the next character of a in what remains of b to help avoid so much recursion
-    # However this implementation is proving to be extremely error
-    # last_index = truncated_a.lower().rfind(b_char.lower())
-    if len(occurrences) == 0:
-        cache((truncated_a, b), False)
-        return False
     # Try all the matches starting with the rightmost/shortest(?) to see if any of them can pass the test.
     for i in range (len(occurrences)-1, -1, -1):
         index_of_char_match = occurrences[i]
-
         assert index_of_char_match !=0 #protect against infinite recursion
         right_side_of_a = a[index_of_char_match:]
         result = abbreviation_impl(right_side_of_a, b, level + 1)
         cache((right_side_of_a, b), result)
         if result:
             return True
-    #We've tried every other possibility and found them lacking. All that remains is to match
-    # the present character in a, capitalized, with the present character in b. Popping them off,
-    # the rest of the strings need to match too.
+    #We've tried every other possibility and found them lacking. So to move forward successfully,
+    # we have to match the present lowercase character from a to the present character in b.
+    # Now we pop them off and recurse because the rest of the strings need to match too.
     result = abbreviation_impl(a[1:], b[1:], level + 1)
     cache((a[1:], b[1:]), result)
     return result
@@ -147,12 +140,13 @@ def abbreviation_impl(a, b, level=0):
         cache_debug("Retrieving from cache {}... of len {}, {}={}".format(a[:20], len(a), len(b),
                                                                 grand_hash[(a, b)]))
         return grand_hash[(a, b)]
-    for i in range(1, len(a)):
+    original_b = b
+    for i in range(len(a)):
         ch = a[i]
 
         #One of a few things must be true:
     # next chars match exactly
-    # next chars match after we capitalize a's
+    # next chars match after we capitalize some from a
     # b gets a pass because a's next char is lowercase hence deleted.
 
     # What isn't OK?
@@ -169,13 +163,9 @@ def abbreviation_impl(a, b, level=0):
                 if (new_a, b) in grand_hash.keys():
                     cache_debug("Retrieving (1) from cache  {}... of len {}, {}={}".format(new_a[:20], len(new_a), len(new_b), grand_hash[(new_a, new_b)]))
                     return grand_hash[(new_a, b)]
-                try:
-                    # if branch_search(new_a, new_b, level):
-                    fancier_branch_search(new_a, b, level)
-                    result = fancy_branch_search(new_a, b, level)
-                    return result
-                except NotImplementedError:
-                    pass
+                fancier_branch_search(new_a, b, level)
+                result = fancy_branch_search(new_a, b, level)
+                return result
 
         if ch.islower():
             continue    #but don't advance b
@@ -183,7 +173,7 @@ def abbreviation_impl(a, b, level=0):
             return False
     #Have we consumed all the b? If there's any left, we fail
     rv = len(b) == 0
-    cache((a, b), rv)
+    cache((a, original_b), rv)
     return rv
 
 # This is too slow and is certainly opaque
@@ -223,7 +213,7 @@ def harness():
     # We can't just keep consuming off be
     # because the match on 'w' leaves 'erWORD' and 'ORD' so b can no longer match.
     harness_easy_cases()
-    exit()
+    # exit()
     # assert 'YES' == abbreviation('aaaaaaaaaabaaaaaaaaaac', 'AaaBAAc')
     assert False == fancy_branch_search('aaaaaBaaaaaaaaaac', 'Ac')
     assert 'NO' == abbreviation('aaaaaaaaaaBaaaaaaaaaac', 'AaaaAAc')
