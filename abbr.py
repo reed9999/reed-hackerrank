@@ -13,14 +13,17 @@ import sys
 
 RECURSION_LIMIT = 498
 max_recursion_so_far = 0
+COUNTER = 0
+grand_hash = {}
+
 
 def cache_debug(msg):
     print(msg)
     # pass
 
 def recursion_debug(msg):
-    # print(msg)
-    pass
+    print(msg)
+    # pass
 
 def cache(key, value):
     #Oops.... I was iterating through a bunch of keys, but now it should just take one single key,
@@ -37,78 +40,90 @@ def fancier_branch_search(a, b, level=0):
     b_char = b[0]
     assert b_char.isupper()
     current_a = a
-    all_occurrences = [match.start() for match in re.finditer(b, current_a, re.IGNORECASE)]
+    all_occurrences = [match.start() for match in re.finditer(b[0], current_a, re.IGNORECASE)]
     recursion_debug("All occurrences:{}".format(all_occurrences))
 
-def find_valid_indices(a, ch):
-    """I was erroneously finding the last occurrence of the sought character from b in a, *at all*,
-    but that means we might discard upper case letters from a, contrary to the rules."""
-    # There can be no valid index beyond the next string of lower case letters, unless the letter matches exactly
-    pattern = "([a-z]*{}?)".format(ch.upper())
-    recursion_debug("Regex is {}".format(pattern))
-    matches = re.findall(pattern, ch)
-    recursion_debug("Matches are {}".format(matches))
-    return matches
+def find_valid_occurrences(a, ch):
+    """We get to this point when, for example, werWORD matches w.
+    Parameters
+    ----------
+    a : string
+        right side of our original a, starting at the lower case character that might match the
+        character under consideration in b.
+    ch : character
+        the current character from b under consideration, i.e. the first char of the remainder of
+        original b, which is being 'consumed' in a loop by the calling script.
+    """
+    possible_matches = []
+    for i in range(len(a)):
+        if a[i].isupper():
+            # That's it. We no longer have the option of dropping letters because we can only drop
+            # lowercase. So we can return now, adding on the last one if appropriate.
+            if a[i].upper() == ch:
+                possible_matches.append(i)
+            return possible_matches
+        # We are still in a series of lowercase letters at the start of a. For all we know, these
+        # could all be dropped.
+        if a[i] == ch.lower():
+            possible_matches.append((i))
+    recursion_debug("Possible matches are {}".format(possible_matches))
+    return possible_matches
 
 def fancy_branch_search(a, b, level=0):
+    """We get to this point when, for example, werWORD matches w.
+    Parameters
+    ----------
+    a : string
+        right side of our original a, starting at the lower case character that might match the present or
+        the future b (itself a remainder).
+    b : string
+        the remainder of original b, which is being 'consumed' in a loop by the calling script.
+    """
     if len(a) < len(b):
         return False
-    current_char = b[0]
-    truncated_a = a #We may no longer need this.
-    while len(truncated_a) > 0: #We may no longer need a while loop bc of for loop below.
-        # Let's look for the next character of a in what remains of b to help avoid so much recursion
-        # However this implementation is proving to be extremely error
-        # last_index = truncated_a.lower().rfind(current_char.lower())
-        indices = find_valid_indices(truncated_a, current_char)
-        if len(indices) == 0:
-            cache((truncated_a, b), False)
-            return False
-        # Try all the matches starting with the shortest one (?) to see if they pass in toto
-        for i in range (len(indices)-1, -1, -1):
-            result = abbreviation_impl(indices[i], b, level + 1)
-            cache((indices[i], b), result)
-            if result:
-                return True
-            # former degenerate case
-            # assert current_char.isupper()
-            # result = abbreviation_impl(a[1:], b[1:], level + 1)
-            # cache((a[1:], b[1:]), result)
-            # return result
+    b_char = b[0]
+    occurrences = find_valid_occurrences(a, b_char)
+    #This will be buggy. I need to replace truncated_a
+    truncated_a = a
+
+    # while True: #len(truncated_a) > 0: #We may no longer need a while loop bc of for loop below.
+
+    # Let's look for the next character of a in what remains of b to help avoid so much recursion
+    # However this implementation is proving to be extremely error
+    # last_index = truncated_a.lower().rfind(b_char.lower())
+    if len(occurrences) == 0:
+        cache((truncated_a, b), False)
+        return False
+    # Try all the matches starting with the rightmost/shortest(?) to see if any of them can pass the test.
+    for i in range (len(occurrences)-1, -1, -1):
+        index_of_char_match = occurrences[i]
+        if i == 0:
+            #I really don't know how to handle this yet. Need to think more.
+            # But this is sort of a degenerate case. allowing the call to abbreviation_impl at
+        # i=0 means
+        # infinite recursion.
+            raise NotImplementedError
+
+        right_side_of_a = a[index_of_char_match:]
+        result = abbreviation_impl(right_side_of_a, b, level + 1)
+        cache((right_side_of_a, b), result)
+        if result:
+            return True
+        # former degenerate case
+        # assert b_char.isupper()
+        # result = abbreviation_impl(a[1:], b[1:], level + 1)
+        # cache((a[1:], b[1:]), result)
+        # return result
         # if abbreviation_impl(truncated_a[last_index:], b, level + 1):
         #
         #     return True
-        cache((a, b), False)
-        return False
+        # end of the former while loop
 
-def broken_fancy_branch_search(a, b, level=0):
-    if len(a) < len(b):
-        return False
-    current_char = b[0]
-    truncated_a = a
-    while len(truncated_a) > 0:
-        # Let's look for the next character of a in what remains of b to help avoid so much recursion
-        # However this implementation is proving to be extremely error
-        last_index = truncated_a.lower().rfind(current_char.lower())
-        if last_index == -1:
-            cache((truncated_a, b), False)
-            return False
-        elif last_index == 0:
-            # degenerate case
-            assert current_char.isupper()
-            result = abbreviation_impl(a[1:], b[1:], level + 1)
-            cache((a[1:], b[1:]), result)
-            return result
-        if len(truncated_a[last_index:]) < len(b):
-            truncated_a = truncated_a[:last_index] #DRY
-            continue
-        if abbreviation_impl(truncated_a[last_index:], b, level + 1):
-
-            return True
-        cache((truncated_a[last_index:], b), False)
-        truncated_a = truncated_a[:last_index]
+    cache((a, b), False)
+    return False
 
 
-COUNTER = 0
+
 def manage_recursion(a, b, level):
     global max_recursion_so_far, COUNTER
 
@@ -131,45 +146,6 @@ def manage_recursion(a, b, level):
         recursion_debug("*****")
         # raise RecursionError  #Why was I raising it manually? I think to prevent a segfault.
 
-#
-# def branch_search(new_a, new_b, level=0):
-#     """The point is sometimes we get tricked by an upper-case conversion that isn't the one
-#     intended. Thanks to the magic of recursion I *THINK* we can just branch into two cases here,
-#     the one where we found the right match and the one where the next possible match is the right one.
-#     level is the depth of the calling code, which we will increment here"""
-#
-#     if abbreviation_impl(new_a[1:], new_b[1:], level + 1):
-#         # The case where matching on the present character produces eventual success, so go ahead and do that.
-#         cache([
-#             (new_a[1:], new_b[1:]),
-#             (new_a, new_b),
-#             ],
-#             True)
-#         cache_debug("Caching <{}...><{}...>=True".format(new_a[:100], new_b[:100]))
-#         return True
-#     if not lookahead_is_ok(new_a, new_b):
-#         return False
-#     if abbreviation_impl(new_a[1:], new_b, level + 1):
-#         # The case where lookahead is necessary. Matching by capitalizing the present character
-#         # produces eventual failure, so instead look ahead and see if declining the match leads to a
-#         # better match down the line.
-#         cache([
-#             (new_a[1:], new_b),
-#             (new_a, new_b),
-#             ],
-#             True)
-#         return True
-#     else:
-#         cache([
-#             (new_a[1:], new_b),
-#             (new_a, new_b),
-#             ],
-#             False)
-#         return False
-#     raise NotImplementedError("This should not fall through.")
-
-grand_hash = {}
-
 
 def abbreviation_impl(a, b, level=0):
     manage_recursion(a, b, level)
@@ -179,7 +155,7 @@ def abbreviation_impl(a, b, level=0):
         cache_debug("Retrieving from cache {}... of len {}, {}={}".format(a[:20], len(a), len(b),
                                                                 grand_hash[(a, b)]))
         return grand_hash[(a, b)]
-    for i in range(len(a)):
+    for i in range(1, len(a)):
         ch = a[i]
 
         #One of a few things must be true:
@@ -192,29 +168,22 @@ def abbreviation_impl(a, b, level=0):
 
         if len(b) > 0:
             if ch == b[0]:
-                b = b[1:]
+                b = b[1:]   #pop one character off, advance the pointer in a, and let's do it again.
                 continue
-            if ch.upper() == b[0]:
-                # This case is very different because of the lowerWORD problem
+            elif ch.upper() == b[0]:
+                # We have a possible match in b, but this case is very different because of the
+                # lowerWORD problem
                 new_a = a[i:]
-                new_b = b
-                if (new_a, new_b) in grand_hash.keys():
+                if (new_a, b) in grand_hash.keys():
                     cache_debug("Retrieving (1) from cache  {}... of len {}, {}={}".format(new_a[:20], len(new_a), len(new_b), grand_hash[(new_a, new_b)]))
-                    return grand_hash[(new_a, new_b)]
+                    return grand_hash[(new_a, b)]
                 try:
                     # if branch_search(new_a, new_b, level):
-                    fancier_branch_search(new_a, new_b, level)
-                    result = fancy_branch_search(new_a, new_b, level)
-                    if result:
-                        return True
-                except RecursionError:  #This is enough to core dump
+                    fancier_branch_search(new_a, b, level)
+                    result = fancy_branch_search(new_a, b, level)
+                    return result
+                except NotImplementedError:
                     pass
-                    # print('Recursion error on branch_search:')
-                    # print('\tlevel: {}'.format(level))
-                    # print('\tnew_a: {}'.format(new_a))
-                    # print('\tnew_b: {}'.format(new_b))
-                    # raise
-
 
         if ch.islower():
             continue    #but don't advance b
@@ -240,9 +209,9 @@ def abbreviation_impl(a, b, level=0):
 
 def abbreviation(a, b):
     max_recursion_so_far = 0
-    # rv = abbreviation_impl(a, b)
-    rv = regex_approach(a, b)
-    #rv = abbreviation_impl(a[::-1], b[::-1])
+    rv = abbreviation_impl(a, b)
+    # rv = regex_approach(a, b)
+    # rv = abbreviation_impl(a[::-1], b[::-1])
     if rv:
         return('YES')
     else:
@@ -329,3 +298,77 @@ if __name__ == '__main__':
 #         if c.isupper():
 #             return False
 #     return True
+
+
+## Alternative implementations
+
+
+def regex_find_valid_occurrences(a, ch):
+    """There are some errors in my regexes so I'm trying something different. """
+    # There can be no valid index beyond the next string of lower case letters, unless the letter matches exactly
+    pattern = "([a-z]*{}?)".format(ch.upper())
+    recursion_debug("Regex is {}".format(pattern))
+    matches = []
+    match = re.search(pattern, ch)
+    while match:
+        matches.append(match)
+        match = re.search(pattern, ch)
+    recursion_debug("Matches are {}".format(matches))
+    return matches
+
+def another_broken_fancy_branch_search(a, b, level=0):
+    if len(a) < len(b):
+        return False
+    current_char = b[0]
+    truncated_a = a #We may no longer need this.
+    while len(truncated_a) > 0: #We may no longer need a while loop bc of for loop below.
+        # Let's look for the next character of a in what remains of b to help avoid so much recursion
+        # However this implementation is proving to be extremely error
+        # last_index = truncated_a.lower().rfind(current_char.lower())
+        occurences = find_valid_occurrences(truncated_a, current_char)
+        if len(occurences) == 0:
+            cache((truncated_a, b), False)
+            return False
+        # Try all the matches starting with the shortest one (?) to see if they pass in toto
+        for i in range (len(occurences)-1, -1, -1):
+            result = abbreviation_impl(occurences[i], b, level + 1)
+            cache((occurences[i], b), result)
+            if result:
+                return True
+            # former degenerate case
+            # assert current_char.isupper()
+            # result = abbreviation_impl(a[1:], b[1:], level + 1)
+            # cache((a[1:], b[1:]), result)
+            # return result
+        # if abbreviation_impl(truncated_a[last_index:], b, level + 1):
+        #
+        #     return True
+        cache((a, b), False)
+        return False
+
+def broken_fancy_branch_search(a, b, level=0):
+    if len(a) < len(b):
+        return False
+    current_char = b[0]
+    truncated_a = a
+    while len(truncated_a) > 0:
+        # Let's look for the next character of a in what remains of b to help avoid so much recursion
+        # However this implementation is proving to be extremely error
+        last_index = truncated_a.lower().rfind(current_char.lower())
+        if last_index == -1:
+            cache((truncated_a, b), False)
+            return False
+        elif last_index == 0:
+            # degenerate case
+            assert current_char.isupper()
+            result = abbreviation_impl(a[1:], b[1:], level + 1)
+            cache((a[1:], b[1:]), result)
+            return result
+        if len(truncated_a[last_index:]) < len(b):
+            truncated_a = truncated_a[:last_index] #DRY
+            continue
+        if abbreviation_impl(truncated_a[last_index:], b, level + 1):
+
+            return True
+        cache((truncated_a[last_index:], b), False)
+        truncated_a = truncated_a[:last_index]
