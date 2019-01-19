@@ -11,19 +11,25 @@ import random
 import re
 import sys
 
-RECURSION_LIMIT = 498
+#580 * 2 seems to be enough for test case 12.0
+RECURSION_LIMIT = 580
+sys.setrecursionlimit(1200)
 max_recursion_so_far = 0
 COUNTER = 0
 grand_hash = {}
 
 
+def general_debug(msg):
+    # print(msg)
+    pass
+
 def cache_debug(msg):
-    print(msg)
-    # pass
+    # print(msg)
+    pass
 
 def recursion_debug(msg):
-    print(msg)
-    # pass
+    # print(msg)
+    pass
 
 def cache(key, value):
     #Oops.... I was iterating through a bunch of keys, but now it should just take one single key,
@@ -113,18 +119,19 @@ def manage_recursion(a, b, level):
     global max_recursion_so_far, COUNTER
 
     if (COUNTER % 1000 == 999):
-        print("**********    iteration {}".format(COUNTER))
-        print("""a (len {}): {}
+        general_debug("**********    iteration {}".format(COUNTER))
+        general_debug("""a (len {}): {}
         b (len {}): {}
         level: {}""".format(len(a), a, len(b), b, level))
-        print("hash size: {}".format(len(grand_hash)))
+        general_debug("hash size: {}".format(len(grand_hash)))
     COUNTER += 1
     if level >= RECURSION_LIMIT:
-        raise RecursionError  # False was just a guess, but guessing is probably not OK.
+        # raise RecursionError  # False was just a guess, but guessing is probably not OK.
+        pass
     if level % 25 == 20 or level > 325:
         recursion_debug("Recursion level: {} (length of hash {})".format(level, len(grand_hash)))
         max_recursion_so_far = max(max_recursion_so_far, level)
-    if level > 496:
+    if level > 748: #496:
         print("Recursion error on the way")
         recursion_debug("\t{}".format(a))
         recursion_debug("\t{}".format(b))
@@ -175,6 +182,7 @@ def abbreviation_impl(a, b, level=0):
     #Have we consumed all the b? If there's any left, we fail
     rv = len(b) == 0
     cache((a, original_b), rv)
+    print(max_recursion_so_far)
     return rv
 
 def abbreviation(a, b):
