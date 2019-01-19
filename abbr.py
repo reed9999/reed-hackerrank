@@ -55,7 +55,10 @@ def find_valid_occurrences(a, ch):
         original b, which is being 'consumed' in a loop by the calling script.
     """
     possible_matches = []
-    for i in range(len(a)):
+    # There's no need to include zero among our matches. It has to be a match to get here, but
+    # more importantly, it's the degenerate case so trying to treat it like others will lead to
+    # infinite recursion.
+    for i in range(1, len(a)):
         if a[i].isupper():
             # That's it. We no longer have the option of dropping letters because we can only drop
             # lowercase. So we can return now, adding on the last one if appropriate.
@@ -97,30 +100,19 @@ def fancy_branch_search(a, b, level=0):
     # Try all the matches starting with the rightmost/shortest(?) to see if any of them can pass the test.
     for i in range (len(occurrences)-1, -1, -1):
         index_of_char_match = occurrences[i]
-        if i == 0:
-            #I really don't know how to handle this yet. Need to think more.
-            # But this is sort of a degenerate case. allowing the call to abbreviation_impl at
-        # i=0 means
-        # infinite recursion.
-            raise NotImplementedError
 
+        assert index_of_char_match !=0 #protect against infinite recursion
         right_side_of_a = a[index_of_char_match:]
         result = abbreviation_impl(right_side_of_a, b, level + 1)
         cache((right_side_of_a, b), result)
         if result:
             return True
-        # former degenerate case
-        # assert b_char.isupper()
-        # result = abbreviation_impl(a[1:], b[1:], level + 1)
-        # cache((a[1:], b[1:]), result)
-        # return result
-        # if abbreviation_impl(truncated_a[last_index:], b, level + 1):
-        #
-        #     return True
-        # end of the former while loop
-
-    cache((a, b), False)
-    return False
+    #We've tried every other possibility and found them lacking. All that remains is to match
+    # the present character in a, capitalized, with the present character in b. Popping them off,
+    # the rest of the strings need to match too.
+    result = abbreviation_impl(a[1:], b[1:], level + 1)
+    cache((a[1:], b[1:]), result)
+    return result
 
 
 
@@ -231,7 +223,7 @@ def harness():
     # We can't just keep consuming off be
     # because the match on 'w' leaves 'erWORD' and 'ORD' so b can no longer match.
     harness_easy_cases()
-    # exit()
+    exit()
     # assert 'YES' == abbreviation('aaaaaaaaaabaaaaaaaaaac', 'AaaBAAc')
     assert False == fancy_branch_search('aaaaaBaaaaaaaaaac', 'Ac')
     assert 'NO' == abbreviation('aaaaaaaaaaBaaaaaaaaaac', 'AaaaAAc')
