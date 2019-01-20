@@ -11,9 +11,11 @@ import random
 import re
 import sys
 
+# FOR STATUS (regarding hackerrank, recursion errors, etc.) see comment at the bottom.
+
 #580 * 2 seems to be enough for test case 12.0
-RECURSION_LIMIT = 580
-sys.setrecursionlimit(1200)
+RECURSION_LIMIT = 1200
+sys.setrecursionlimit(2*RECURSION_LIMIT + 10)
 max_recursion_so_far = 0
 COUNTER = 0
 grand_hash = {}
@@ -42,6 +44,16 @@ def cache(key, value):
     cache_debug("Cache storing: {} -- {}".format(key, value))
     grand_hash[key] = value
 
+
+def prebuild_cache(a, b, chars=None):
+    CACHE_CHARS = chars or 800
+    if (len(a) < CACHE_CHARS):
+        #don't bother
+        return
+    for i in range(1, CACHE_CHARS+1, -1):
+        result = abbreviation_impl(a, b, 0)
+        cache (a, b, result)
+    print ("Cache prebuilt; size is now {}".format(len(grand_hash)))
 
 # Last attempt was a complete mess. Let's try something less error-prone.
 def fancier_branch_search(a, b, level=0):
@@ -131,13 +143,12 @@ def manage_recursion(a, b, level):
     if level % 25 == 20 or level > 325:
         recursion_debug("Recursion level: {} (length of hash {})".format(level, len(grand_hash)))
         max_recursion_so_far = max(max_recursion_so_far, level)
-    if level > 748: #496:
+    if level > RECURSION_LIMIT - 10:
         print("Recursion error on the way")
         recursion_debug("\t{}".format(a))
         recursion_debug("\t{}".format(b))
         recursion_debug("*****")
         # raise RecursionError  #Why was I raising it manually? I think to prevent a segfault.
-
 
 def abbreviation_impl(a, b, level=0):
     manage_recursion(a, b, level)
@@ -182,11 +193,13 @@ def abbreviation_impl(a, b, level=0):
     #Have we consumed all the b? If there's any left, we fail
     rv = len(b) == 0
     cache((a, original_b), rv)
-    print(max_recursion_so_far)
+    if max_recursion_so_far > 500:
+        print(max_recursion_so_far)
     return rv
 
 def abbreviation(a, b):
     max_recursion_so_far = 0
+    prebuild_cache(a, b,)
     rv = abbreviation_impl(a, b)
     # rv = regex_approach(a, b)
     # rv = abbreviation_impl(a[::-1], b[::-1])
@@ -204,6 +217,13 @@ def harness_easy_cases():
     assert 'YES' == abbreviation('AbC', 'ABC')
     assert 'YES' == abbreviation('WthW', 'WW')
     assert 'YES' == abbreviation('WORDthenlowerWORD', 'WORDthenWORD')
+
+def harness_awful_cases():
+    with open('testcases/abbr13.txt') as the_file:
+        lines = the_file.readlines()
+        tc13_3 = tuple(lines[7:9])
+    assert 'NO' == abbreviation(*tc13_5)
+
 
 def harness():
     # We can't just keep consuming off be
@@ -225,19 +245,23 @@ def harness():
         # tc13_6 = tuple(lines[13:15])
     # assert 'NO' == abbreviation(*tc13_5)
     # assert 'YES' == abbreviation(*tc13_6)
+
+
 if __name__ == '__main__':
     # fptr = open(os.environ['OUTPUT_PATH'], 'w')
-    harness()
-    exit()
+    # harness()
+    # exit()
     q = int(input())
 
     for q_itr in range(q):
+        print ("Iteration {}*****".format(q_itr))
         a = input()
 
         b = input()
         try:
             result = abbreviation(a, b)
         except RecursionError as the_error:
+            print (max_recursion_so_far)
             print ("Recursion Error")
 
 
@@ -247,18 +271,6 @@ if __name__ == '__main__':
     # fptr.close()
 
 
-# This is too slow and is certainly opaque
-# def regex_approach(a, b,):
-#     b_pattern = "[a-z]*"    #OK to drop any number of lower case letters.
-#     for c in b:
-#         # lower case in b must only match lower
-#         # upper in b can match either
-#         b_pattern += \
-#             c.lower() if c.islower() \
-#                 else "["+ c + c.lower() + "]"
-#         b_pattern += "[a-z]*"
-#     # print("Matching {} {}".format(b_pattern, a))
-#     return re.match(b_pattern, a)
 
 
 # Outdated but maybe worth revisiting?
@@ -294,74 +306,86 @@ def regex_find_valid_occurrences(a, ch):
     recursion_debug("Matches are {}".format(matches))
     return matches
 
-def another_broken_fancy_branch_search(a, b, level=0):
-    if len(a) < len(b):
-        return False
-    current_char = b[0]
-    truncated_a = a #We may no longer need this.
-    while len(truncated_a) > 0: #We may no longer need a while loop bc of for loop below.
-        # Let's look for the next character of a in what remains of b to help avoid so much recursion
-        # However this implementation is proving to be extremely error
-        # last_index = truncated_a.lower().rfind(current_char.lower())
-        occurences = find_valid_occurrences(truncated_a, current_char)
-        if len(occurences) == 0:
-            cache((truncated_a, b), False)
-            return False
-        # Try all the matches starting with the shortest one (?) to see if they pass in toto
-        for i in range (len(occurences)-1, -1, -1):
-            result = abbreviation_impl(occurences[i], b, level + 1)
-            cache((occurences[i], b), result)
-            if result:
-                return True
-            # former degenerate case
-            # assert current_char.isupper()
-            # result = abbreviation_impl(a[1:], b[1:], level + 1)
-            # cache((a[1:], b[1:]), result)
-            # return result
-        # if abbreviation_impl(truncated_a[last_index:], b, level + 1):
-        #
-        #     return True
-        cache((a, b), False)
-        return False
+# With the prebuilt cache, some of the worst testcases pass on my local installation but still
+# fail (or at least something fails in TC 13!) on the server. I'm good with declaring victory for now;
+# I've learned a lot about how to optimize recursion.
+# It would still be interesting to see if tuning the CACHE_CHARS changes performance (or max
+# recursion depth)
 
-def broken_fancy_branch_search(a, b, level=0):
-    if len(a) < len(b):
-        return False
-    current_char = b[0]
-    truncated_a = a
-    while len(truncated_a) > 0:
-        # Let's look for the next character of a in what remains of b to help avoid so much recursion
-        # However this implementation is proving to be extremely error
-        last_index = truncated_a.lower().rfind(current_char.lower())
-        if last_index == -1:
-            cache((truncated_a, b), False)
-            return False
-        elif last_index == 0:
-            # degenerate case
-            assert current_char.isupper()
-            result = abbreviation_impl(a[1:], b[1:], level + 1)
-            cache((a[1:], b[1:]), result)
-            return result
-        if len(truncated_a[last_index:]) < len(b):
-            truncated_a = truncated_a[:last_index] #DRY
-            continue
-        if abbreviation_impl(truncated_a[last_index:], b, level + 1):
-
-            return True
-        cache((truncated_a[last_index:], b), False)
-        truncated_a = truncated_a[:last_index]
-
-
-
-# This is too slow and is certainly opaque
-# def regex_approach(a, b,):
-#     b_pattern = "[a-z]*"    #OK to drop any number of lower case letters.
-#     for c in b:
-#         # lower case in b must only match lower
-#         # upper in b can match either
-#         b_pattern += \
-#             c.lower() if c.islower() \
-#                 else "["+ c + c.lower() + "]"
-#         b_pattern += "[a-z]*"
-#     # print("Matching {} {}".format(b_pattern, a))
-#     return re.match(b_pattern, a)
+# Note that the max depth of 972 below is for the two-function recursion.
+#
+# Sat Jan 19 15:04:03 PST 2019
+# Iteration 0*****
+# Cache prebuilt; size is now 0
+# YES
+# Iteration 1*****
+# Cache prebuilt; size is now 2157
+# NO
+# Iteration 2*****
+# Cache prebuilt; size is now 2343
+# 962
+# YES
+# Iteration 3*****
+# Cache prebuilt; size is now 239440
+# NO
+# Iteration 4*****
+# Cache prebuilt; size is now 266454
+# NO
+# Iteration 5*****
+# Cache prebuilt; size is now 312796
+# NO
+# Iteration 6*****
+# Cache prebuilt; size is now 377793
+# 962
+# 962
+# 962
+# 962
+# YES
+# Iteration 7*****
+# Cache prebuilt; size is now 744944
+# 962
+# YES
+# Iteration 8*****
+# Cache prebuilt; size is now 1117511
+# NO
+# Iteration 9*****
+# Cache prebuilt; size is now 1181739
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# 962
+# YES
+# Sat Jan 19 15:20:06 PST 2019
