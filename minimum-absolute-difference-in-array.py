@@ -6,10 +6,13 @@ import random
 import re
 import sys
 
-# Complete the minimumAbsoluteDifference function below.
-def minimumAbsoluteDifference(arr):
-    arr.sort()
-    return min([abs(arr[i] - arr[i-1]) for i in range(1, len(arr)) ])
+def minimumAbsoluteDifference(arr)
+    arr.sort!
+    # Code adapted from https://stackoverflow.com/questions/310426/list-comprehension-in-ruby
+    # but I don't know if [i] and [i-1] really make sense with map. It's practice for me in 
+    # adapting list comprehensions though.
+    return ((1..arr.length-1).map{|i| (arr[i] - arr[i-1]).abs}).min
+end
 
 if __name__ == '__main__':
     fptr = open(os.environ['OUTPUT_PATH'], 'w')
