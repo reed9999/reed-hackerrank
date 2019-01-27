@@ -7,7 +7,7 @@ import random
 import re
 import sys
 
-# TC 7 times out. Expected value is:
+# Reengineered, somewhat, but TC 7 still times out. Expected value is:
 # 115173
 # Too chaotic
 # 115013
@@ -32,17 +32,26 @@ def minimumBribes_impl(q, subtotal):
     # for ix, item in enumerate(q):
     #     print(ix)
     #     print(item)
+    global sorted_q
     for ix, original in enumerate(q):
         ix += 1     #one-based, not zero-based
         if ix == original:
             # Sorting at each recursion below was senseless, so this replaces a sort.
-            sorted_q.remove(ix)
+            sorted_q.remove(original)
             continue
         # Eventually rather than a separate test_for_chaos we could test here, probably.
-        return minimumBribes_impl(normalize(q[ix:]), subtotal + (original - ix))
+        sorted_q.remove(original)
+        normalized = normalize(q[ix:])
+
+        #This implementation still feels like it's doing extra work. The notion is,
+        # now that we've normalized q for the next recursion, we reset the (smaller) sorted
+        # list to match, which means just the (smaller) range of numbers.
+        sorted_q = list(range(1, len(q) + 1))
+        return minimumBribes_impl(normalized, subtotal + (original - ix))
     return subtotal
 
 def normalize(q):
+    global sorted_q
     rv = []
     # sorted_q = sorted(q)
     # Possible list comprehension
