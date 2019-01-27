@@ -30,12 +30,44 @@ int compare(const void *a, const void *b) {
 // def minimumAbsoluteDifference(arr):
 //     arr.sort()
 //     return min([abs(arr[i] - arr[i-1]) for i in range(1, len(arr)) ])
+
+// JS for reference (probably more relevant)
+//function minimumAbsoluteDifference(arr) {
+//    arr.sort(function (a, b) { return a - b; })
+//    var i, rv;
+//    for (i = 1; i < arr.length; i++) {
+//        if (typeof rv == 'undefined') {
+//            rv = Math.abs(arr[i] - arr[i - 1]);
+//            // console.log(rv);
+//        } else {
+//            rv = Math.min(rv, Math.abs(arr[i] - arr[i - 1]));
+//            // console.log(rv);
+//        }
+//    }
+//    return rv;
+//
+//}
+
 int minimumAbsoluteDifference(int arr_count, int* arr) {
 
   qsort(arr, arr_count, sizeof(int), compare);
+   int rv = -9999;
+   for (int i = 1; i < arr_count; i++) {
+    if (rv == -9999) {
+        rv = abs(arr[i] - arr[i-1]);
+        } else {
+        rv = imin(rv, abs(arr[i] - arr[i-1]));
+        }
+   }
+   return rv;
+}
 
-   for (int i = 0; i < arr_count; i++) {}
-   return 999;
+int imin(int a, int b) {
+    if (a > b) {
+    return a;
+    } else {
+    return b;
+    }
 }
 
 int main()
