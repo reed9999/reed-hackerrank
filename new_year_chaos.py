@@ -7,24 +7,17 @@ import random
 import re
 import sys
 
-"""Key test case
-8
-1 2 5 3 7 8 6 4
-Proceed to the 5 in place 3. That's two bribes so count 2. Normalize the remaining array:
-3 7 8 6 4
-becomes
-1 4 5 3 2
-Proceed to 4. Count 2 (4 cumulative) leaving 5 3 2 -> 3 2 1.
-Count 2 for the 3 (6 cumul) leaving 2 1 which of course is 1 more.
-"""
-
 # TC 7 times out. Expected value is:
 # 115173
 # Too chaotic
 # 115013
 # Too chaotic
 
+sorted_q = None
+
 def minimumBribes(q):
+    global sorted_q
+    sorted_q = list(range(1, len(q) + 1))
     if test_for_chaos(q):
         print("Too chaotic")
         return "CHAOS!"
@@ -42,6 +35,8 @@ def minimumBribes_impl(q, subtotal):
     for ix, original in enumerate(q):
         ix += 1     #one-based, not zero-based
         if ix == original:
+            # Sorting at each recursion below was senseless, so this replaces a sort.
+            sorted_q.remove(ix)
             continue
         # Eventually rather than a separate test_for_chaos we could test here, probably.
         return minimumBribes_impl(normalize(q[ix:]), subtotal + (original - ix))
@@ -49,7 +44,7 @@ def minimumBribes_impl(q, subtotal):
 
 def normalize(q):
     rv = []
-    sorted_q = sorted(q)
+    # sorted_q = sorted(q)
     # Possible list comprehension
     for item in q:
         rv.append(sorted_q.index(item)+1)
@@ -60,9 +55,30 @@ def test_for_chaos(q):
     if (is_chaotic):
         return True
 
+def harness():
+    input = """2
+5
+2 1 5 3 4
+5
+2 5 1 3 4""".splitlines()
+    input = iter(input)
+    expected_values = iter([3, "CHAOS!"])
+    t = int(next(input))
+
+    for t_itr in range(t):
+        n = int(next(input))
+
+        q = list(map(int, next(input).rstrip().split()))
+        print (q)
+        ev = next(expected_values)
+        assert ev == minimumBribes(q)
+
+
 if __name__ == '__main__':
-    arr = [1, 2, 5, 3, 7, 8, 6, 4,]
-    minimumBribes(arr)
+
+    # arr = [1, 2, 5, 3, 7, 8, 6, 4,]
+    # minimumBribes(arr)
+    harness()
     exit()
 
     t = int(input())
@@ -73,3 +89,4 @@ if __name__ == '__main__':
         q = list(map(int, input().rstrip().split()))
 
         minimumBribes(q)
+
